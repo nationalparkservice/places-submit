@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Submit | Places | InsideMaps</title>
+    <link href="http://www.nps.gov/lib/bootstrap/3.3.2/css/nps-bootstrap.min.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="assets/css/main.css" rel="stylesheet">
+    <link href="http://www.nps.gov/lib/assets/img/favicon.ico" rel="shortcut icon">
+    <link href="http://www.nps.gov/lib/assets/img/apple-touch-icon-144x144-precomposed.png" rel="apple-touch-icon-precomposed" sizes="144x144">
+    <link href="http://www.nps.gov/lib/assets/img/apple-touch-icon-114x114-precomposed.png" rel="apple-touch-icon-precomposed" sizes="114x114">
+    <link href="http://www.nps.gov/lib/assets/img/apple-touch-icon-72x72-precomposed.png" rel="apple-touch-icon-precomposed" sizes="72x72">
+    <link href="http://www.nps.gov/lib/assets/img/apple-touch-icon-57x57-precomposed.png" rel="apple-touch-icon-precomposed">
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div id="map">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="loading" class="active progress progress-striped" style="display:none;left:50%;margin-left:-150px;margin-top:-10px;position:fixed;top:50%;width:300px;z-index:999999999;">
+      <div class="progress-bar" role="progressbar" aria-valuemax="100" aria-valuemin="100" aria-valuenow="100" style="width:100%;">
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="http://www.nps.gov/lib/bootstrap/3.3.2/js/nps-bootstrap.min.js"></script>
+    <script src="assets/libs/geojson2osm/geojson2osm.min.js"></script>
+    <script src="assets/libs/osmauth/osmauth.min.js"></script>
+    <script src="assets/js/main.js"></script>
+  </body>
+</html>
