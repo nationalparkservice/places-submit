@@ -1,8 +1,8 @@
 /* exported geojson2osm */
-var geojson2osm = function (geojson, changeset, presets) {
+var geojson2osm = function (geojson, changeset, presets, nodeToModifyId) {
   var intersection = function intersection (arrayA, arrayB) {
     var returnValue = 0;
-    for (var i = 0; i < arrayB.length; i++) {
+    for (var i = 0; i < arrayB.length; i++) {  
       if (arrayA.indexOf(arrayB[i]) >= 0) returnValue++;
     }
     return returnValue;
@@ -189,7 +189,8 @@ var geojson2osm = function (geojson, changeset, presets) {
   if (geojson.type === 'Feature') {
     geojson = {'type': 'FeatureCollection', 'features': [geojson]};
   }
-  switch (geojson.type) {
+var types = ['nodes', 'ways', 'relations'];
+switch (geojson.type) {
     case 'FeatureCollection':
       var temp = {
         nodes: '',
@@ -205,12 +206,22 @@ var geojson2osm = function (geojson, changeset, presets) {
         temp.ways += obj[n].ways;
         temp.relations += obj[n].relations;
       }
-      temp.osm = '<osmChange version="0.3" generator="geojson2osmChangeset"><create>';
-      var types = ['nodes', 'ways', 'relations'];
-      for (var j = 0; j < types.length; j++) {
-        temp.osm += temp[types[j]] || '';
+      temp.osm = '<osmChange version="0.3" generator="geojson2osmChangeset">';
+      if (!nodeToModifyId) 
+        for (var j = 0; j < types.length; j++) {
+          temp.osm += temp[types[j]] || '';
+        }
+        temp.osm += '</create><modify/>';
+      } else {
+        temp.osm += '<modify/>';
+        // TODO, create a better wayt to do this!
+        for (var k = 0; k < types.length; k++) {
+          // This is a TEMPORARY way to update the first node with the id in nodeToModifyId
+          temp.osm += temp[types[k]].replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
+        }
+        temp.osm += '</modify>';
       }
-      temp.osm += '</create><modify/><delete if-unused="true"/></osmChange>';
+      temp.osm += '<delete if-unused="true"/></osmChange>';
       osmFile = temp.osm;
       break;
     default:
@@ -219,4 +230,3 @@ var geojson2osm = function (geojson, changeset, presets) {
   }
   return osmFile;
 };
-
