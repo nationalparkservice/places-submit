@@ -132,7 +132,7 @@ $(document).ready(function () {
     }, function (authError, authResult) {
       if (!authError && authResult) {
         var changeset = {
-          data: geojson2osm(geojson, authResult, iD.data.presets.presets),
+          data: geojson2osm(geojson, authResult, iD.data.npmapPresets.presets),
           id: authResult
         };
         auth.xhr({
@@ -293,7 +293,7 @@ $(document).ready(function () {
             });
             types = points;
           },
-          url: 'http://insidemaps.nps.gov/dist/presets.js'
+          url: 'http://nationalparkservice.github.io/places-data/npmapPresets.js'
         });
         callback();
       }
