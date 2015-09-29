@@ -51,11 +51,11 @@ $(document).ready(function () {
         }
       });
   }
+  function del (callback) {}
   function hideLoading () {
     $('#backdrop').hide();
     $('#loading').hide();
   }
-  function del (callback) {}
   function showLoading () {
     $('#backdrop').show();
     $('#loading').show();
@@ -79,6 +79,7 @@ $(document).ready(function () {
         window.alert('authError!');
         hideLoading();
       } else if (authResult) {
+        // var data = geojson2osm(geojson, authResult, iD.data.presets.presets, editId, removeNode);
         var data = geojson2osm(geojson, authResult, iD.data.presets.presets, editId);
         var id = authResult;
 
