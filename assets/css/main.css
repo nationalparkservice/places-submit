@@ -25,9 +25,9 @@ body,
   border-top: none;
   display: inline-block;
 }
-  .panel p {
-    margin-bottom: 0;
-  }
+.panel p {
+  margin-bottom: 0;
+}
 .leaflet-popup-content input {
   font-weight: normal !important;
   width: 175px !important;
@@ -44,10 +44,10 @@ body,
   text-align: center;
   z-index: 1;
 }
-  #buttons p {
-    color: #fff;
-    font-weight: bold;
-  }
+#buttons p {
+  color: #fff;
+  font-weight: bold;
+}
 #backdrop {
   display: none;
 }
@@ -61,6 +61,6 @@ body,
   width: 300px;
   z-index: 999999999;
 }
-  #loading div {
-    width: 100%;
-  }
+#loading div {
+  width: 100%;
+}
