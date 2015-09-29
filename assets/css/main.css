@@ -28,7 +28,23 @@ body,
   .panel p {
     margin-bottom: 0;
   }
-input,
-select {
-  width: 200px !important;
+.leaflet-popup-content input {
+  font-weight: normal !important;
+  width: 175px !important;
 }
+#buttons {
+  background: rgb(0, 0, 0);
+  background: rgba(0, 0, 0, 0.5);
+  bottom: 30px;
+  display: none;
+  left: 0;
+  padding: 6px 12px;
+  position: absolute;
+  right: 0;
+  text-align: center;
+  z-index: 1;
+}
+  #buttons p {
+    color: #fff;
+    font-weight: bold;
+  }
