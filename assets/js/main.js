@@ -51,14 +51,20 @@ $(document).ready(function () {
         }
       });
   }
+  function hideLoading () {
+    $('#backdrop').hide();
+    $('#loading').hide();
+  }
   function del (callback) {}
+  function showLoading () {
+    $('#backdrop').show();
+    $('#loading').show();
+  }
   function submit (callback) {
     var geojson = marker.toGeoJSON();
 
     geojson.properties.name = name;
     geojson.properties['nps:preset'] = type;
-    console.log(geojson);
-    /*
     auth.xhr({
       content: '<osm><changeset version="0.3" generator="npmap-uploader"><tag k="created_by" v="places-uploader"/><tag k="locale" v="en-US"/><tag k="comment" v="Parking"/></changeset></osm>',
       method: 'PUT',
@@ -69,49 +75,53 @@ $(document).ready(function () {
       },
       path: '/api/0.6/changeset/create'
     }, function (authError, authResult) {
-      if (!authError && authResult) {
-        var changeset = {
-          data: geojson2osm(geojson, authResult, iD.data.presets.presets, editId),
-          id: authResult
-        };
+      if (authError) {
+        window.alert('authError!');
+        hideLoading();
+      } else if (authResult) {
+        var data = geojson2osm(geojson, authResult, iD.data.presets.presets, editId);
+        var id = authResult;
+
         auth.xhr({
-          content: changeset.data,
+          content: data,
           method: 'POST',
           options: {
             header: {
               'Content-Type': 'text/xml'
             }
           },
-          path: '/api/0.6/changeset/' + changeset.id + '/upload'
+          path: '/api/0.6/changeset/' + id + '/upload'
         }, function (uploadDataError, uploadDataResult) {
           if (!uploadDataError) {
             auth.xhr({
               method: 'PUT',
-              path: '/api/0.6/changeset/' + changeset.id + '/close'
+              path: '/api/0.6/changeset/' + id + '/close'
             }, function (closeChangesetError, closeChangesetResult) {
               if (!closeChangesetError) {
-                NPMap.config.L.removeLayer(marker);
                 callback({
                   auth: {
                     error: authError,
                     result: authResult
                   },
-                  upload: {
-                    error: uploadDataError,
-                    result: uploadDataResult
-                  },
                   close: {
                     error: closeChangesetError,
                     result: closeChangesetResult
+                  },
+                  upload: {
+                    error: uploadDataError,
+                    result: uploadDataResult
                   }
                 });
+                hideLoading();
               }
             });
           }
         });
+      } else {
+        window.alert('No authResult!');
+        hideLoading();
       }
     });
-    */
   }
   function toSecondEditStep (message) {
     var popup = L.popup({
@@ -210,21 +220,30 @@ $(document).ready(function () {
         trigger: 'manual'
       })
       .on('hidden.bs.popover', function () {
-        $('body .delete-backdrop').remove();
+        $('#backdrop')
+          .css('z-index', '1040')
+          .hide();
       })
       .on('shown.bs.popover', function () {
-        $('body').append('<div class="delete-backdrop in modal-backdrop" style="z-index:1059;"></div>');
-        $('confirm-delete .btn-danger').click(function () {
+        $('#backdrop')
+          .css('z-index', '1059')
+          .show();
+        $('.confirm-delete .btn-danger').click(function () {
           $btn.popover('destroy');
-          $('#loading').show();
-          $('#loading .progress-bar').show();
+          showLoading();
+          setTimeout(function () {
+            hideLoading();
+            window.parent.window.postMessage('delete:' + editId, '*');
+          }, 2000);
+          /*
           verifyAuth(function () {
             del(function () {
-              // TODO: If success, postMessage
+              window.parent.window.postMessage('delete:' + editId, '*');
             });
           });
+          */
         });
-        $('.pi-confirm-delete .btn-default').click(function () {
+        $('.confirm-delete .btn-default').click(function () {
           $btn.popover('destroy');
         });
       });
@@ -244,9 +263,30 @@ $(document).ready(function () {
       if (!name || !name.length) {
         $name.prev().css('color', '#a94442');
       } else {
-        // TODO: Show loading.
+        showLoading();
         saving = true;
         $name.prev().css('color', '#464646');
+        setTimeout(function () {
+          var latLng = marker.getLatLng();
+          var obj = {
+            n: name,
+            t: type,
+            x: latLng.lng,
+            y: latLng.lat
+          };
+
+          hideLoading();
+
+          if (editId) {
+            obj.i = editId;
+            window.parent.window.postMessage('update:' + JSON.stringify(obj), '*');
+          } else {
+            obj.i = new Date().getTime();
+            window.parent.window.postMessage('create:' + JSON.stringify(obj), '*');
+          }
+        }, 3000);
+
+        /*
         verifyAuth(function () {
           submit(function (result) {
             $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
@@ -268,6 +308,7 @@ $(document).ready(function () {
             });
           });
         });
+        */
       }
     }
 
@@ -328,9 +369,6 @@ $(document).ready(function () {
     scrollWheelZoom: (iframe ? undefined : true),
     zoom: zoom
   };
-
-  s.src = 'http://www.nps.gov/lib/npmap.js/2.0.1/npmap-bootstrap.min.js';
-  document.body.appendChild(s);
   window.addEventListener('message', function receiveMessage (e) {
     if (e.origin !== 'http://insidemaps.nps.gov') {
       return;
@@ -338,4 +376,6 @@ $(document).ready(function () {
       authComplete(e.data);
     }
   }, false);
+  s.src = 'http://www.nps.gov/lib/npmap.js/2.0.1/npmap-bootstrap.min.js';
+  document.body.appendChild(s);
 });
