@@ -72,6 +72,7 @@ $(document).ready(function () {
               var div = document.createElement('div');
               var geojson = marker.toGeoJSON();
               var nodeToModifyId = null; // Put the id of the node you'd like to modify here, if this is falsy, it will create a new node
+              var removeNode = false; // Set to true to remove a node
               $name.prev().css('color', '#464646');
               saving = true;
               geojson.properties.name = name;
@@ -81,7 +82,7 @@ $(document).ready(function () {
               document.body.appendChild(div);
               document.getElementById('loading').style.display = 'block';
               $('.wrapper').hide();
-              uploadGeojson(geojson, nodeToModifyId, function (uploadResult) {
+              uploadGeojson(geojson, nodeToModifyId, removeNode, function (uploadResult) {
                 $(uploadResult.upload.result.childNodes[0].innerHTML).each(function (i, el) {
                   var places_id;
 
@@ -120,7 +121,7 @@ $(document).ready(function () {
       }
     }, 100);
   }
-  function uploadGeojson (geojson, nodeToModifyId, callback) {
+  function uploadGeojson (geojson, nodeToModifyId, removeNode, callback) {
     auth.xhr({
       content: '<osm><changeset version="0.3" generator="npmap-uploader"><tag k="created_by" v="places-uploader"/><tag k="locale" v="en-US"/><tag k="comment" v="Parking"/></changeset></osm>',
       method: 'PUT',
@@ -133,7 +134,7 @@ $(document).ready(function () {
     }, function (authError, authResult) {
       if (!authError && authResult) {
         var changeset = {
-          data: geojson2osm(geojson, authResult, iD.data.presets.presets, nodeToModifyId),
+          data: geojson2osm(geojson, authResult, iD.data.presets.presets, nodeToModifyId, removeNode),
           id: authResult
         };
         auth.xhr({
