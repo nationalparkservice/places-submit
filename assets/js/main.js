@@ -1,31 +1,31 @@
 /* globals $, authComplete, geojson2osm, L, osmAuth */
 
-/*
-
-   - Check against InsideMaps status to see if user is logged in.
-   - If they are, show map, etc.
-   - If they aren't, redirect them to the InsideMaps login page
-   - Pass hash information in so it is captured properly
-   - Once they've saved a point, call the function, via postMessage, that is passed in via the URL
-
-*/
-
 var iD = {
   data: {}
 };
 var NPMap;
 
 $(document).ready(function () {
+  var $buttons = $('#buttons');
+  var $cancel = $('#cancel');
+  var $del = $('#delete');
+  var $drop = $('#drop');
+  var $submit = $('#submit');
   var dev = false;
-  var iframe = false;
   var s = document.createElement('script');
+  var saving = false;
   var $name;
-  var $type;
   var auth;
+  var center;
+  var editId;
+  var editLatLng;
+  var editName;
+  var iframe;
+  var map;
   var marker;
   var name;
   var type;
-  var types;
+  var zoom;
 
   function buildPopup (e) {
     e = e || this;
@@ -37,90 +37,28 @@ $(document).ready(function () {
     }
 
     $name.focus();
-    $type.val(type);
   }
   function generateForm () {
-    var interval = setInterval(function () {
-      $name = $('#name');
+    $name = $('#name');
+    $name
+      .val(name)
+      .focus()
+      .on('input', function () {
+        name = $(this).val();
 
-      if (typeof $name === 'object') {
-        var saving = false;
-
-        clearInterval(interval);
-        $type = $('#type');
-        $.each(types, function (i, type) {
-          var name = type.name;
-          $type.append('<option value="' + name + '">' + name + '</option>');
-        });
-        $type.on('change', function () {
-          type = $(this).val();
-        });
-        $name
-          .focus()
-          .on('input', function () {
-            name = $(this).val();
-
-            if (name && name.length) {
-              $name.prev().css('color', '#464646');
-            }
-          });
-        $('form').submit(function () {
-          if (!saving) {
-            if (!name || !name.length) {
-              $name.prev().css('color', '#a94442');
-            } else {
-              var div = document.createElement('div');
-              var geojson = marker.toGeoJSON();
-              var nodeToModifyId = null; // Put the id of the node you'd like to modify here, if this is falsy, it will create a new node
-              $name.prev().css('color', '#464646');
-              saving = true;
-              geojson.properties.name = name;
-              geojson.properties['nps:preset'] = type;
-              div.className = 'modal-backdrop in';
-              div.style.zIndex = '9999';
-              document.body.appendChild(div);
-              document.getElementById('loading').style.display = 'block';
-              $('.wrapper').hide();
-              uploadGeojson(geojson, nodeToModifyId, function (uploadResult) {
-                $(uploadResult.upload.result.childNodes[0].innerHTML).each(function (i, el) {
-                  var places_id;
-
-                  if (el.attributes['new_id']) {
-                    places_id = 'n' + el.attributes['new_id'].value;
-                  }
-
-                  document.getElementById('loading').style.display = 'none';
-                  div.parentNode.removeChild(div);
-
-                  if (places_id) {
-                    window.alert(places_id);
-                  } else {
-                    $('.wrapper').show();
-                    window.alert('error!');
-                  }
-
-                  saving = false;
-                });
-              });
-            }
-          }
-
-          return false;
-        });
-
-        if (name) {
-          $name.val(name);
+        if (name && name.length) {
+          $name.prev().css('color', '#464646');
         }
-
-        if (type) {
-          $type.val(type);
-        } else {
-          type = $type.val();
-        }
-      }
-    }, 100);
+      });
   }
-  function uploadGeojson (geojson, nodeToModifyId, callback) {
+  function del (callback) {}
+  function submit (callback) {
+    var geojson = marker.toGeoJSON();
+
+    geojson.properties.name = name;
+    geojson.properties['nps:preset'] = type;
+    console.log(geojson);
+    /*
     auth.xhr({
       content: '<osm><changeset version="0.3" generator="npmap-uploader"><tag k="created_by" v="places-uploader"/><tag k="locale" v="en-US"/><tag k="comment" v="Parking"/></changeset></osm>',
       method: 'PUT',
@@ -133,7 +71,7 @@ $(document).ready(function () {
     }, function (authError, authResult) {
       if (!authError && authResult) {
         var changeset = {
-          data: geojson2osm(geojson, authResult, iD.data.presets.presets, nodeToModifyId),
+          data: geojson2osm(geojson, authResult, iD.data.presets.presets, editId),
           id: authResult
         };
         auth.xhr({
@@ -173,6 +111,47 @@ $(document).ready(function () {
         });
       }
     });
+    */
+  }
+  function toSecondEditStep (message) {
+    var popup = L.popup({
+      autoPanPaddingBottomRight: L.point(10, 116),
+      autoPanPaddingTopLeft: L.point(48, 48),
+      closeButton: false,
+      closeOnClick: false,
+      keepInView: true
+    })
+      .setContent('' +
+        '<form>' +
+          '<div class="form-group">' +
+            '<label for="name">Name</label>' +
+            '<input class="form-control" id="name" type="text">' +
+          '</div>' +
+        '</form>' +
+      '');
+
+    message = message || 'Now drag the marker to refine its location, add a name, then click "Submit" to save it to Places.';
+    marker
+      .bindPopup(popup)
+      .openPopup()
+      .on('click', buildPopup)
+      .on('dragend', buildPopup);
+    generateForm();
+    $('#buttons p').html(message);
+    $drop.hide();
+    $submit.show();
+  }
+  function verifyAuth (callback) {
+    auth.xhr({
+      method: 'GET',
+      path: '/api/0.6/user/details'
+    }, function (error, response) {
+      if (error) {
+        auth.authenticate(callback);
+      } else {
+        callback();
+      }
+    });
   }
 
   $.each(window.location.search.replace('?', '').split('&'), function (i, param) {
@@ -181,125 +160,175 @@ $(document).ready(function () {
     if (param) {
       var name = param[0];
 
-      if (name === 'dev') {
+      if (name === 'center') {
+        center = param[1].split(',');
+        center = {
+          lat: center[0],
+          lng: center[1]
+        };
+      } else if (name === 'dev') {
         if (param[1] && (param[1].toLowerCase() === 'true')) {
           dev = true;
         }
+      } else if (name === 'edit_id') {
+        editId = param[1];
+      } else if (name === 'edit_ll') {
+        editLatLng = param[1].split(',');
+        editLatLng = {
+          lat: parseFloat(editLatLng[0]),
+          lng: parseFloat(editLatLng[1])
+        };
+      } else if (name === 'edit_n') {
+        editName = decodeURIComponent(param[1]);
       } else if (name === 'iframe') {
-        if (param[1] && (param[1].toLowerCase() === 'true')) {
-          iframe = true;
-        }
+        iframe = param[1];
+      } else if (name === 'type') {
+        type = decodeURIComponent(param[1]);
+      } else if (name === 'zoom') {
+        zoom = parseInt(param[1], 10);
       }
     }
   });
+  $del.click(function () {
+    var $btn = $(this);
 
+    $btn
+      .popover({
+        animation: false,
+        container: 'body',
+        content: '' +
+          '<div class="confirm-delete">' +
+            '<p>Are you sure you want to delete <em>"' + name + '"</em>?</p>' +
+            '<div style="text-align:center;">' +
+              '<button class="btn btn-default" style="margin-right:5px;" type="button">Cancel</button>' +
+              '<button class="btn btn-danger" type="button">Confirm</button>' +
+            '</div>' +
+          '</div>' +
+        '',
+        html: true,
+        placement: 'top',
+        trigger: 'manual'
+      })
+      .on('hidden.bs.popover', function () {
+        $('body .delete-backdrop').remove();
+      })
+      .on('shown.bs.popover', function () {
+        $('body').append('<div class="delete-backdrop in modal-backdrop" style="z-index:1059;"></div>');
+        $('confirm-delete .btn-danger').click(function () {
+          $btn.popover('destroy');
+          $('#loading').show();
+          $('#loading .progress-bar').show();
+          verifyAuth(function () {
+            del(function () {
+              // TODO: If success, postMessage
+            });
+          });
+        });
+        $('.pi-confirm-delete .btn-default').click(function () {
+          $btn.popover('destroy');
+        });
+      });
+    $btn.popover('show');
+  });
+  $drop.on('click', function () {
+    marker = new L.Marker(map.getCenter(), {
+      draggable: true,
+      icon: L.npmap.icon.maki({
+        'marker-color': '#d95f02'
+      })
+    }).addTo(map);
+    toSecondEditStep();
+  });
+  $submit.on('click', function () {
+    if (!saving) {
+      if (!name || !name.length) {
+        $name.prev().css('color', '#a94442');
+      } else {
+        // TODO: Show loading.
+        saving = true;
+        $name.prev().css('color', '#464646');
+        verifyAuth(function () {
+          submit(function (result) {
+            $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
+              var places_id;
+
+              if (el.attributes['new_id']) {
+                places_id = 'n' + el.attributes['new_id'].value;
+              }
+
+              // TODO: Hide loading.
+
+              if (places_id) {
+                window.alert(places_id);
+              } else {
+                window.alert('error!');
+              }
+
+              saving = false;
+            });
+          });
+        });
+      }
+    }
+
+    return false;
+  });
   auth = osmAuth({
     modal: true,
     oauth_consumer_key: 'F7zPYlVCqE2BUH9Hr4SsWZSOnrKjpug1EgqkbsSb',
     oauth_secret: 'rIkjpPcBNkMQxrqzcOvOC4RRuYupYr7k8mfP13H5',
     url: 'http://10.147.153.193' + (dev ? ':8000' : '')
   });
-  auth.xhr({
-    method: 'GET',
-    path: '/api/0.6/user/details'
-  }, function (error, response) {
-    if (error) {
-      auth.authenticate(function () {});
-    }
-  });
+
+  if (iframe) {
+    $cancel.on('click', function () {
+      window.parent.window.postMessage('cancel', '*');
+    });
+  } else {
+    $cancel.remove();
+  }
+
   NPMap = {
     baseLayers: [
       'nps-parkTilesImagery'
     ],
+    center: center,
     closePopupOnClick: false,
     div: 'map',
-    draggable: true,
-    // TODO: Differentiate between click and dblclick.
-    events: [{
-      fn: function (e) {
-        if (!marker) {
-          var popup = L.popup({
-            autoPanPadding: L.point(65, 65),
-            closeButton: false,
-            closeOnClick: false,
-            keepInView: true
-          })
-            .setContent('' +
-              '<form>' +
-                '<div class="form-group">' +
-                  '<label for="name">Name</label>' +
-                  '<input class="form-control" id="name" type="text">' +
-                '</div>' +
-                '<div class="form-group">' +
-                  '<label for="type=">Type</label>' +
-                  '<select class="form-control" id="type">' +
-                  '</select>' +
-                '</div>' +
-                '<div style="text-align:center;">' +
-                  '<button class="btn btn-primary">Submit</button>' +
-                '</div>' +
-              '</form>' +
-            '');
-
-          document.getElementsByClassName('panel-body')[0].childNodes[0].innerHTML = 'Drag the marker to position it then fill out and submit the form.';
-          marker = L.marker(e.latlng, {
-            draggable: true
-          })
-            .addTo(NPMap.config.L)
-            .bindPopup(popup)
-            .openPopup()
-            .on('click', buildPopup)
-            .on('dragend', buildPopup);
-          generateForm();
-        }
-      },
-      type: 'click'
-    }],
-    hashControl: true,
-    homeControl: false,
+    geocoderControl: true,
     hooks: {
       init: function (callback) {
-        var div = document.createElement('div');
-        div.className = 'wrapper';
-        div.innerHTML = '' +
-          '<div class="panel panel-default">' +
-            '<div class="panel-body">' +
-              '<p>Click the map to add a location.</p>' +
-            '</div>' +
-          '</div>' +
-        '';
-        document.getElementsByClassName('npmap-container')[0].appendChild(div);
+        map = NPMap.config.L;
 
         if (dev) {
-          document.getElementsByClassName('leaflet-control-attribution')[0].innerHTML += ' | <span style="color:#d9534f;">DEV</span>';
+          $('.leaflet-control-attribution')[0].innerHTML += ' | <span style="color:#d9534f;">DEV</span>';
         }
 
-        L.npmap.util._.reqwest({
-          success: function (response) {
-            var points = [];
-            var presets = iD.data.presets.presets;
+        if (editId && editLatLng && editName) {
+          $drop.hide();
+          marker = new L.Marker(editLatLng, {
+            draggable: true,
+            icon: L.npmap.icon.maki({
+              'marker-color': '#d95f02'
+            })
+          }).addTo(map);
+          name = editName;
+          map.setView(editLatLng, 18);
+          toSecondEditStep();
+        } else {
+          $del.hide();
+          $submit.hide();
+        }
 
-            for (var prop in presets) {
-              if (prop.indexOf('nps') > -1) {
-                var preset = presets[prop];
-
-                if (preset.geometry.indexOf('point') > -1 && points.indexOf(preset) === -1) {
-                  points.push(preset);
-                }
-              }
-            }
-
-            points.sort(function (a, b) {
-              return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-            });
-            types = points;
-          },
-          url: 'http://nationalparkservice.github.io/places-data/npmapPresets.js'
-        });
+        $buttons.show();
+        L.npmap.util._.appendJsFile('https://nationalparkservice.github.io/places-data/npmapPresets.js');
         callback();
       }
-    }
+    },
+    scrollWheelZoom: (iframe ? undefined : true),
+    zoom: zoom
   };
+
   s.src = 'http://www.nps.gov/lib/npmap.js/2.0.1/npmap-bootstrap.min.js';
   document.body.appendChild(s);
   window.addEventListener('message', function receiveMessage (e) {
