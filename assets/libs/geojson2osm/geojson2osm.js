@@ -1,5 +1,5 @@
 /* exported geojson2osm */
-var geojson2osm = function (geojson, changeset, presets, nodeToModifyId) {
+var geojson2osm = function (geojson, changeset, presets, nodeToModifyId, removeNode) {
   var intersection = function intersection (arrayA, arrayB) {
     var returnValue = 0;
     for (var i = 0; i < arrayB.length; i++) {  
@@ -207,21 +207,23 @@ switch (geojson.type) {
         temp.relations += obj[n].relations;
       }
       temp.osm = '<osmChange version="0.3" generator="geojson2osmChangeset">';
-      if (!nodeToModifyId) 
+      if (!nodeToModifyId)
+        temp.osm += '<create>
         for (var j = 0; j < types.length; j++) {
           temp.osm += temp[types[j]] || '';
         }
-        temp.osm += '</create><modify/>';
+        temp.osm += '</create><modify/><delete if-unused="true"/>';
+      } else if (removeNode === true) { // Make sure "true" is passed in, and not just a typo
+        temp.osm += '<create/><modify/><delete if-unused="true">';
+        temp.osm += temp[nodes[0]].replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
+        temp.osm += '</delete>';
       } else {
-        temp.osm += '<modify/>';
-        // TODO, create a better wayt to do this!
-        for (var k = 0; k < types.length; k++) {
-          // This is a TEMPORARY way to update the first node with the id in nodeToModifyId
-          temp.osm += temp[types[k]].replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
-        }
-        temp.osm += '</modify>';
+        // This is a TEMPORARY way to update the first node with the id in nodeToModifyId
+        temp.osm += '<create/><modify>';
+        temp.osm += temp[nodes[0]].replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
+        temp.osm += '</modify><delete if-unused="true"/>';
       }
-      temp.osm += '<delete if-unused="true"/></osmChange>';
+      temp.osm += '</osmChange>';
       osmFile = temp.osm;
       break;
     default:
