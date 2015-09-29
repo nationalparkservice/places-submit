@@ -71,6 +71,7 @@ $(document).ready(function () {
             } else {
               var div = document.createElement('div');
               var geojson = marker.toGeoJSON();
+              var nodeToModifyId = null; // Put the id of the node you'd like to modify here, if this is falsy, it will create a new node
               $name.prev().css('color', '#464646');
               saving = true;
               geojson.properties.name = name;
@@ -80,7 +81,7 @@ $(document).ready(function () {
               document.body.appendChild(div);
               document.getElementById('loading').style.display = 'block';
               $('.wrapper').hide();
-              uploadGeojson(geojson, function (uploadResult) {
+              uploadGeojson(geojson, nodeToModifyId, function (uploadResult) {
                 $(uploadResult.upload.result.childNodes[0].innerHTML).each(function (i, el) {
                   var places_id;
 
@@ -119,7 +120,7 @@ $(document).ready(function () {
       }
     }, 100);
   }
-  function uploadGeojson (geojson, callback) {
+  function uploadGeojson (geojson, nodeToModifyId, callback) {
     auth.xhr({
       content: '<osm><changeset version="0.3" generator="npmap-uploader"><tag k="created_by" v="places-uploader"/><tag k="locale" v="en-US"/><tag k="comment" v="Parking"/></changeset></osm>',
       method: 'PUT',
@@ -132,7 +133,7 @@ $(document).ready(function () {
     }, function (authError, authResult) {
       if (!authError && authResult) {
         var changeset = {
-          data: geojson2osm(geojson, authResult, iD.data.npmapPresets.presets),
+          data: geojson2osm(geojson, authResult, iD.data.presets.presets, nodeToModifyId),
           id: authResult
         };
         auth.xhr({
@@ -299,7 +300,7 @@ $(document).ready(function () {
       }
     }
   };
-  s.src = 'http://www.nps.gov/lib/npmap.js/2.0.0/npmap-bootstrap.min.js';
+  s.src = 'http://www.nps.gov/lib/npmap.js/2.0.1/npmap-bootstrap.min.js';
   document.body.appendChild(s);
   window.addEventListener('message', function receiveMessage (e) {
     if (e.origin !== 'http://insidemaps.nps.gov') {
