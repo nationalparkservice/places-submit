@@ -274,10 +274,11 @@ $(document).ready(function () {
           document.getElementsByClassName('leaflet-control-attribution')[0].innerHTML += ' | <span style="color:#d9534f;">DEV</span>';
         }
 
-        L.npmap.util._.reqwest({
+        $.ajax({
+          datatype: 'script',
           success: function (response) {
             var points = [];
-            var presets = iD.data.presets.presets;
+            var presets = iD.data.npmapPresets.presets;
 
             for (var prop in presets) {
               if (prop.indexOf('nps') > -1) {
