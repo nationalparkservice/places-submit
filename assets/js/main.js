@@ -34,35 +34,35 @@ $(document).ready(function () {
     param = param.split('=');
 
     if (param) {
-      var name = param[0];
+      var paramName = param[0];
 
-      if (name === 'center') {
+      if (paramName === 'center') {
         center = param[1].split(',');
         center = {
           lat: center[0],
           lng: center[1]
         };
-      } else if (name === 'dev') {
+      } else if (paramName === 'dev') {
         if (param[1] && (param[1].toLowerCase() === 'true')) {
           dev = true;
         }
-      } else if (name === 'edit_id') {
+      } else if (paramName === 'edit_id') {
         editId = param[1];
-      } else if (name === 'edit_ll') {
+      } else if (paramName === 'edit_ll') {
         editLatLng = param[1].split(',');
         editLatLng = {
           lat: parseFloat(editLatLng[0]),
           lng: parseFloat(editLatLng[1])
         };
-      } else if (name === 'iframe') {
+      } else if (paramName === 'iframe') {
         iframe = param[1];
-      } else if (name === 'name') {
-        name = param[1];
-      } else if (name === 'type') {
+      } else if (paramName === 'name') {
+        name = decodeURIComponent(param[1]);
+      } else if (paramName === 'type') {
         type = decodeURIComponent(param[1]);
-      } else if (name === 'unit_code') {
+      } else if (paramName === 'unit_code') {
         unitCode = param[1];
-      } else if (name === 'zoom') {
+      } else if (paramName === 'zoom') {
         zoom = parseInt(param[1], 10);
       }
     }
@@ -307,6 +307,7 @@ $(document).ready(function () {
         verifyAuth(function () {
           submit(function (result) {
             if (result.success && result.upload && result.upload.result && result.upload.result.childNodes && result.upload.result.childNodes[0]) {
+              console.log(result.upload.result.childNodes[0].innerHTML);
               $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
                 if (el.attributes['new_id']) {
                   var latLng = marker.getLatLng();
@@ -321,6 +322,7 @@ $(document).ready(function () {
 
                   if (editId) {
                     if (iframe) {
+                      console.log('post');
                       window.parent.window.postMessage('update:' + JSON.stringify(obj), '*');
                     } else {
                       map.notify.success('Node: ' + editId + ' updated!');
