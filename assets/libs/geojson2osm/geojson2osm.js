@@ -1,8 +1,7 @@
-/* exported geojson2osm */
 var geojson2osm = function (geojson, changeset, presets, nodeToModifyId, removeNode) {
   var intersection = function intersection (arrayA, arrayB) {
     var returnValue = 0;
-    for (var i = 0; i < arrayB.length; i++) {  
+    for (var i = 0; i < arrayB.length; i++) {
       if (arrayA.indexOf(arrayB[i]) >= 0) returnValue++;
     }
     return returnValue;
@@ -19,13 +18,13 @@ var geojson2osm = function (geojson, changeset, presets, nodeToModifyId, removeN
     var newTags = {};
 
     if (presets && properties['nps:preset']) {
-      // Find that preset
       for (var preset in presets) {
         if (intersection(presets[preset].geometry, geometry) && presets[preset].name === properties['nps:preset']) {
           newTags = presets[preset].tags;
           break;
         }
       }
+
       delete properties['nps:preset'];
     }
 
@@ -33,9 +32,7 @@ var geojson2osm = function (geojson, changeset, presets, nodeToModifyId, removeN
       properties[newTag] = newTags[newTag] === '*' ? 'yes' : newTags[newTag];
     }
 
-    // TODO: Add unit code
-    // This will require changing this from sync to async
-    // Maybe have this added elsewhere?
+    // TODO: Add unit code. This will require changing this from sync to async. Maybe have this added elsewhere?
 
     for (var tag in properties) {
       if (properties[tag] !== null) {
@@ -57,9 +54,10 @@ var geojson2osm = function (geojson, changeset, presets, nodeToModifyId, removeN
     };
   };
   var LineString = function LineString (geo, properties) {
-    var nodes = '',
-      ways = '';
+    var nodes = '';
     var coords = [];
+    var ways = '';
+
     ways += '<way id="' + count + '" changeset="' + changeset + '">';
     count--;
     for (var i = 0; i <= geo.coordinates.length - 1; i++) {
@@ -189,8 +187,10 @@ var geojson2osm = function (geojson, changeset, presets, nodeToModifyId, removeN
   if (geojson.type === 'Feature') {
     geojson = {'type': 'FeatureCollection', 'features': [geojson]};
   }
-var types = ['nodes', 'ways', 'relations'];
-switch (geojson.type) {
+
+  var types = ['nodes', 'ways', 'relations'];
+
+  switch (geojson.type) {
     case 'FeatureCollection':
       var temp = {
         nodes: '',
@@ -198,37 +198,43 @@ switch (geojson.type) {
         relations: ''
       };
       var obj = [];
+
       for (var i = 0; i < geojson.features.length; i++) {
         obj.push(togeojson(geojson.features[i].geometry, geojson.features[i].properties));
       }
+
       for (var n = 0; n < obj.length; n++) {
         temp.nodes += obj[n].nodes;
         temp.ways += obj[n].ways;
         temp.relations += obj[n].relations;
       }
+
       temp.osm = '<osmChange version="0.3" generator="geojson2osmChangeset">';
-      if (!nodeToModifyId)
-        temp.osm += '<create>
+
+      if (!nodeToModifyId) {
+        temp.osm += '<create>';
+
         for (var j = 0; j < types.length; j++) {
           temp.osm += temp[types[j]] || '';
         }
+
         temp.osm += '</create><modify/><delete if-unused="true"/>';
-      } else if (removeNode === true) { // Make sure "true" is passed in, and not just a typo
+      } else if (removeNode === true) {
         temp.osm += '<create/><modify/><delete if-unused="true">';
-        temp.osm += temp[nodes[0]].replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
+        temp.osm += temp.nodes.replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
         temp.osm += '</delete>';
       } else {
-        // This is a TEMPORARY way to update the first node with the id in nodeToModifyId
         temp.osm += '<create/><modify>';
-        temp.osm += temp[nodes[0]].replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
+        temp.osm += temp.nodes.replace('node id="-1"', 'node id="' + nodeToModifyId + '"') || '';
         temp.osm += '</modify><delete if-unused="true"/>';
       }
+
       temp.osm += '</osmChange>';
       osmFile = temp.osm;
       break;
     default:
-      console.log('default');
       break;
   }
+
   return osmFile;
 };

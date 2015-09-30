@@ -1,6 +1,7 @@
 /* globals $, authComplete, geojson2osm, L, osmAuth */
 
 // TODO: Loading bar should update for three different phases of submit.
+// TODO: If not in 'iframe' mode, update URL with parameters as changes to points are made.
 
 var iD = {
   data: {}
@@ -107,21 +108,18 @@ $(document).ready(function () {
     var geojson = marker.toGeoJSON();
 
     if (edit) {
-      edit = edit.replace('n', '');
+      edit = parseInt(edit.replace('n', ''), 10);
     }
 
     if (name) {
       geojson.properties.name = name;
     }
 
-    console.log(edit);
-    console.log(del);
-
     geojson.properties['nps:preset'] = type;
     geojson.properties['nps:source_system'] = 'Places Submit';
     geojson.properties['nps:unit_code'] = unitCode;
     auth.xhr({
-      content: '<osm><changeset version="0.3" generator="npmap-uploader"><tag k="created_by" v="places-uploader"/><tag k="locale" v="en-US"/><tag k="comment" v="Parking"/></changeset></osm>',
+      content: '<osm><changeset version="0.3" generator="geojson2osmChangeset"><tag k="nps:source_system" v="Places Submit"/></changeset></osm>',
       method: 'PUT',
       options: {
         header: {
@@ -271,13 +269,15 @@ $(document).ready(function () {
                 if (iframe) {
                   window.parent.window.postMessage('delete:' + editId, '*');
                 } else {
-                  map.success('Node: ' + editId + ' deleted!');
+                  map.notify.success('Node: ' + editId + ' deleted!');
                   map.removeLayer(marker);
                   $buttons.remove();
                 }
               } else {
                 map.notify.danger('The node could not be deleted. Please try again.');
               }
+
+              hideLoading();
             }, editId, true);
           });
         });
