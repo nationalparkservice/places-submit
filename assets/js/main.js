@@ -236,13 +236,11 @@ $(document).ready(function () {
             hideLoading();
             window.parent.window.postMessage('delete:' + editId, '*');
           }, 2000);
-          /*
           verifyAuth(function () {
             del(function () {
               window.parent.window.postMessage('delete:' + editId, '*');
             });
           });
-          */
         });
         $('.confirm-delete .btn-default').click(function () {
           $btn.popover('destroy');
@@ -287,7 +285,6 @@ $(document).ready(function () {
           }
         }, 3000);
 
-        /*
         verifyAuth(function () {
           submit(function (result) {
             $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
@@ -309,7 +306,6 @@ $(document).ready(function () {
             });
           });
         });
-        */
       }
     }
 
