@@ -92,6 +92,7 @@ module.exports = function (o) {
             token('oauth_request_token_secret', resp.oauth_token_secret);
             var authorize_url = o.url + '/oauth/authorize?' + ohauth.qsString({
                 oauth_token: resp.oauth_token,
+                oauth_message_host: location.protocol + '//' + location.host,
                 //oauth_callback: location.href.replace('index.html', '').replace(/#.*/, '').replace(location.search, '') + o.landing
                 oauth_callback: 'http://insidemaps.nps.gov/places/submit/land2.html'
             });
