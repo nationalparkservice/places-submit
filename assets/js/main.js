@@ -307,7 +307,6 @@ $(document).ready(function () {
         verifyAuth(function () {
           submit(function (result) {
             if (result.success && result.upload && result.upload.result && result.upload.result.childNodes && result.upload.result.childNodes[0]) {
-              console.log(result.upload.result.childNodes[0].innerHTML);
               $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
                 if (el.attributes['new_id']) {
                   var latLng = marker.getLatLng();
@@ -322,7 +321,6 @@ $(document).ready(function () {
 
                   if (editId) {
                     if (iframe) {
-                      console.log('post');
                       window.parent.window.postMessage('update:' + JSON.stringify(obj), '*');
                     } else {
                       map.notify.success('Node: ' + editId + ' updated!');
