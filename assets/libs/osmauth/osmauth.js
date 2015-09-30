@@ -28,8 +28,8 @@ module.exports = function (o) {
   };
 
     // TODO: detect lack of click event
-    oauth.authenticate = function (callback) {
-        if (oauth.authenticated()) {
+    oauth.authenticate = function (callback, skipLocalStorage) {
+        if (!skipLocalStorage && oauth.authenticated()) {
           return callback();
         }
 

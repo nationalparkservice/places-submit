@@ -1,5 +1,7 @@
 /* globals $, authComplete, geojson2osm, L, osmAuth */
 
+// TODO: Loading bar should update for three different phases of submit.
+
 var iD = {
   data: {}
 };
@@ -19,13 +21,55 @@ $(document).ready(function () {
   var center;
   var editId;
   var editLatLng;
-  var editName;
   var iframe;
   var map;
   var marker;
   var name;
   var type;
+  var unitCode;
   var zoom;
+
+  $.each(window.location.search.replace('?', '').split('&'), function (i, param) {
+    param = param.split('=');
+
+    if (param) {
+      var name = param[0];
+
+      if (name === 'center') {
+        center = param[1].split(',');
+        center = {
+          lat: center[0],
+          lng: center[1]
+        };
+      } else if (name === 'dev') {
+        if (param[1] && (param[1].toLowerCase() === 'true')) {
+          dev = true;
+        }
+      } else if (name === 'edit_id') {
+        editId = param[1];
+      } else if (name === 'edit_ll') {
+        editLatLng = param[1].split(',');
+        editLatLng = {
+          lat: parseFloat(editLatLng[0]),
+          lng: parseFloat(editLatLng[1])
+        };
+      } else if (name === 'iframe') {
+        iframe = param[1];
+      } else if (name === 'name') {
+        name = param[1];
+      } else if (name === 'type') {
+        type = decodeURIComponent(param[1]);
+      } else if (name === 'unit_code') {
+        unitCode = param[1];
+      } else if (name === 'zoom') {
+        zoom = parseInt(param[1], 10);
+      }
+    }
+  });
+
+  if (!type || !unitCode) {
+    document.body.innerHTML = '<p>You must pass "type" and "unit_code" in as URL parameters.</p>';
+  }
 
   function buildPopup (e) {
     e = e || this;
@@ -51,7 +95,6 @@ $(document).ready(function () {
         }
       });
   }
-  function del (callback) {}
   function hideLoading () {
     $('#backdrop').hide();
     $('#loading').hide();
@@ -60,11 +103,23 @@ $(document).ready(function () {
     $('#backdrop').show();
     $('#loading').show();
   }
-  function submit (callback) {
+  function submit (callback, edit, del) {
     var geojson = marker.toGeoJSON();
 
-    geojson.properties.name = name;
+    if (edit) {
+      edit = edit.replace('n', '');
+    }
+
+    if (name) {
+      geojson.properties.name = name;
+    }
+
+    console.log(edit);
+    console.log(del);
+
     geojson.properties['nps:preset'] = type;
+    geojson.properties['nps:source_system'] = 'Places Submit';
+    geojson.properties['nps:unit_code'] = unitCode;
     auth.xhr({
       content: '<osm><changeset version="0.3" generator="npmap-uploader"><tag k="created_by" v="places-uploader"/><tag k="locale" v="en-US"/><tag k="comment" v="Parking"/></changeset></osm>',
       method: 'PUT',
@@ -76,11 +131,12 @@ $(document).ready(function () {
       path: '/api/0.6/changeset/create'
     }, function (authError, authResult) {
       if (authError) {
-        window.alert('authError!');
-        hideLoading();
+        callback({
+          error: 'Authorization error.',
+          success: false
+        });
       } else if (authResult) {
-        // var data = geojson2osm(geojson, authResult, iD.data.presets.presets, editId, removeNode);
-        var data = geojson2osm(geojson, authResult, iD.data.presets.presets, editId);
+        var data = geojson2osm(geojson, authResult, iD.data.npmapPresets.presets, edit, del);
         var id = authResult;
 
         auth.xhr({
@@ -93,12 +149,22 @@ $(document).ready(function () {
           },
           path: '/api/0.6/changeset/' + id + '/upload'
         }, function (uploadDataError, uploadDataResult) {
-          if (!uploadDataError) {
+          if (uploadDataError) {
+            callback({
+              error: 'Upload error.',
+              success: false
+            });
+          } else {
             auth.xhr({
               method: 'PUT',
               path: '/api/0.6/changeset/' + id + '/close'
             }, function (closeChangesetError, closeChangesetResult) {
-              if (!closeChangesetError) {
+              if (closeChangesetError) {
+                callback({
+                  error: 'Close changeset error.',
+                  success: false
+                });
+              } else {
                 callback({
                   auth: {
                     error: authError,
@@ -108,19 +174,21 @@ $(document).ready(function () {
                     error: closeChangesetError,
                     result: closeChangesetResult
                   },
+                  success: true,
                   upload: {
                     error: uploadDataError,
                     result: uploadDataResult
                   }
                 });
-                hideLoading();
               }
             });
           }
         });
       } else {
-        window.alert('No authResult!');
-        hideLoading();
+        callback({
+          error: 'No authorization result.',
+          success: false
+        });
       }
     });
   }
@@ -158,48 +226,13 @@ $(document).ready(function () {
       path: '/api/0.6/user/details'
     }, function (error, response) {
       if (error) {
-        auth.authenticate(callback);
+        auth.authenticate(callback, true);
       } else {
         callback();
       }
     });
   }
 
-  $.each(window.location.search.replace('?', '').split('&'), function (i, param) {
-    param = param.split('=');
-
-    if (param) {
-      var name = param[0];
-
-      if (name === 'center') {
-        center = param[1].split(',');
-        center = {
-          lat: center[0],
-          lng: center[1]
-        };
-      } else if (name === 'dev') {
-        if (param[1] && (param[1].toLowerCase() === 'true')) {
-          dev = true;
-        }
-      } else if (name === 'edit_id') {
-        editId = param[1];
-      } else if (name === 'edit_ll') {
-        editLatLng = param[1].split(',');
-        editLatLng = {
-          lat: parseFloat(editLatLng[0]),
-          lng: parseFloat(editLatLng[1])
-        };
-      } else if (name === 'edit_n') {
-        editName = decodeURIComponent(param[1]);
-      } else if (name === 'iframe') {
-        iframe = param[1];
-      } else if (name === 'type') {
-        type = decodeURIComponent(param[1]);
-      } else if (name === 'zoom') {
-        zoom = parseInt(param[1], 10);
-      }
-    }
-  });
   $del.click(function () {
     var $btn = $(this);
 
@@ -232,14 +265,20 @@ $(document).ready(function () {
         $('.confirm-delete .btn-danger').click(function () {
           $btn.popover('destroy');
           showLoading();
-          setTimeout(function () {
-            hideLoading();
-            window.parent.window.postMessage('delete:' + editId, '*');
-          }, 2000);
           verifyAuth(function () {
-            del(function () {
-              window.parent.window.postMessage('delete:' + editId, '*');
-            });
+            submit(function (result) {
+              if (result.success) {
+                if (iframe) {
+                  window.parent.window.postMessage('delete:' + editId, '*');
+                } else {
+                  map.success('Node: ' + editId + ' deleted!');
+                  map.removeLayer(marker);
+                  $buttons.remove();
+                }
+              } else {
+                map.notify.danger('The node could not be deleted. Please try again.');
+              }
+            }, editId, true);
           });
         });
         $('.confirm-delete .btn-default').click(function () {
@@ -265,46 +304,49 @@ $(document).ready(function () {
         showLoading();
         saving = true;
         $name.prev().css('color', '#464646');
-        setTimeout(function () {
-          var latLng = marker.getLatLng();
-          var obj = {
-            n: name,
-            t: type,
-            x: latLng.lng,
-            y: latLng.lat
-          };
-
-          hideLoading();
-
-          if (editId) {
-            obj.i = editId;
-            window.parent.window.postMessage('update:' + JSON.stringify(obj), '*');
-          } else {
-            obj.i = new Date().getTime();
-            window.parent.window.postMessage('create:' + JSON.stringify(obj), '*');
-          }
-        }, 3000);
-
         verifyAuth(function () {
           submit(function (result) {
-            $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
-              var places_id;
+            if (result.success && result.upload && result.upload.result && result.upload.result.childNodes && result.upload.result.childNodes[0]) {
+              $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
+                if (el.attributes['new_id']) {
+                  var latLng = marker.getLatLng();
+                  var obj = {
+                    n: name,
+                    t: type,
+                    x: latLng.lng,
+                    y: latLng.lat
+                  };
 
-              if (el.attributes['new_id']) {
-                places_id = 'n' + el.attributes['new_id'].value;
-              }
+                  obj.i = 'n' + el.attributes['new_id'].value;
 
-              // TODO: Hide loading.
+                  if (editId) {
+                    if (iframe) {
+                      window.parent.window.postMessage('update:' + JSON.stringify(obj), '*');
+                    } else {
+                      map.notify.success('Node: ' + editId + ' updated!');
+                    }
+                  } else {
+                    if (iframe) {
+                      window.parent.window.postMessage('create:' + JSON.stringify(obj), '*');
+                    } else {
+                      editId = obj.i;
+                      $del.show();
+                      map.notify.success('Node: ' + editId + ' created!');
+                    }
+                  }
+                } else {
+                  map.notify.danger('No places_id was returned. Please try again.');
+                }
 
-              if (places_id) {
-                window.alert(places_id);
-              } else {
-                window.alert('error!');
-              }
+                hideLoading();
+                saving = false;
+              });
+            } else {
+              map.notify.danger('The submit failed. Please try again.');
+            }
 
-              saving = false;
-            });
-          });
+            saving = false;
+          }, editId);
         });
       }
     }
@@ -334,6 +376,7 @@ $(document).ready(function () {
     closePopupOnClick: false,
     div: 'map',
     geocoderControl: true,
+    hashControl: (iframe ? undefined : true),
     hooks: {
       init: function (callback) {
         map = NPMap.config.L;
@@ -342,7 +385,7 @@ $(document).ready(function () {
           $('.leaflet-control-attribution')[0].innerHTML += ' | <span style="color:#d9534f;">DEV</span>';
         }
 
-        if (editId && editLatLng && editName) {
+        if (editId && editLatLng) {
           $drop.hide();
           marker = new L.Marker(editLatLng, {
             draggable: true,
@@ -350,7 +393,6 @@ $(document).ready(function () {
               'marker-color': '#d95f02'
             })
           }).addTo(map);
-          name = editName;
           map.setView(editLatLng, 18);
           toSecondEditStep();
         } else {
