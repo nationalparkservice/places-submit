@@ -262,8 +262,8 @@ $(document).ready(function () {
           .show();
         $('.confirm-delete .btn-danger').click(function () {
           $btn.popover('destroy');
-          showLoading();
           verifyAuth(function () {
+            showLoading();
             submit(function (result) {
               if (result.success) {
                 if (iframe) {
@@ -301,10 +301,10 @@ $(document).ready(function () {
       if (!name || !name.length) {
         $name.prev().css('color', '#a94442');
       } else {
-        showLoading();
         saving = true;
         $name.prev().css('color', '#464646');
         verifyAuth(function () {
+          showLoading();
           submit(function (result) {
             if (result.success && result.upload && result.upload.result && result.upload.result.childNodes && result.upload.result.childNodes[0]) {
               $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
