@@ -95,10 +95,69 @@ $(document).ready(function () {
           $name.prev().css('color', '#464646');
         }
       });
+    $('form').submit(function () {
+      save();
+      return false;
+    });
   }
   function hideLoading () {
     $('#backdrop').hide();
     $('#loading').hide();
+  }
+  function save () {
+    if (!saving) {
+      if (!name || !name.length) {
+        $name.prev().css('color', '#a94442');
+      } else {
+        saving = true;
+        $name.prev().css('color', '#464646');
+        verifyAuth(function () {
+          showLoading();
+          submit(function (result) {
+            if (result.success && result.upload && result.upload.result && result.upload.result.childNodes && result.upload.result.childNodes[0]) {
+              $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
+                if (el.attributes['new_id']) {
+                  var latLng = marker.getLatLng();
+                  var obj = {
+                    n: name,
+                    t: type,
+                    x: latLng.lng,
+                    y: latLng.lat
+                  };
+
+                  obj.i = 'n' + el.attributes['new_id'].value;
+
+                  if (editId) {
+                    if (iframe) {
+                      window.parent.window.postMessage('update:' + JSON.stringify(obj), '*');
+                    } else {
+                      map.notify.success('Node: ' + editId + ' updated!');
+                    }
+                  } else {
+                    if (iframe) {
+                      window.parent.window.postMessage('create:' + JSON.stringify(obj), '*');
+                    } else {
+                      editId = obj.i;
+                      $del.show();
+                      map.notify.success('Node: ' + editId + ' created!');
+                    }
+                  }
+                } else {
+                  map.notify.danger('No places_id was returned. Please try again.');
+                }
+
+                hideLoading();
+                saving = false;
+              });
+            } else {
+              map.notify.danger('The submit failed. Please try again.');
+            }
+
+            saving = false;
+          }, editId);
+        });
+      }
+    }
   }
   function showLoading () {
     $('#backdrop').show();
@@ -199,12 +258,12 @@ $(document).ready(function () {
       keepInView: true
     })
       .setContent('' +
-        '<form>' +
-          '<div class="form-group">' +
+        '<div class="form-group">' +
+          '<form>' +
             '<label for="name">Name</label>' +
             '<input class="form-control" id="name" type="text">' +
-          '</div>' +
-        '</form>' +
+          '</form>' +
+        '</div>' +
       '');
 
     message = message || 'Now drag the marker to refine its location, add a name, then click "Submit" to save it to Places.';
@@ -297,59 +356,7 @@ $(document).ready(function () {
     toSecondEditStep();
   });
   $submit.on('click', function () {
-    if (!saving) {
-      if (!name || !name.length) {
-        $name.prev().css('color', '#a94442');
-      } else {
-        saving = true;
-        $name.prev().css('color', '#464646');
-        verifyAuth(function () {
-          showLoading();
-          submit(function (result) {
-            if (result.success && result.upload && result.upload.result && result.upload.result.childNodes && result.upload.result.childNodes[0]) {
-              $(result.upload.result.childNodes[0].innerHTML).each(function (i, el) {
-                if (el.attributes['new_id']) {
-                  var latLng = marker.getLatLng();
-                  var obj = {
-                    n: name,
-                    t: type,
-                    x: latLng.lng,
-                    y: latLng.lat
-                  };
-
-                  obj.i = 'n' + el.attributes['new_id'].value;
-
-                  if (editId) {
-                    if (iframe) {
-                      window.parent.window.postMessage('update:' + JSON.stringify(obj), '*');
-                    } else {
-                      map.notify.success('Node: ' + editId + ' updated!');
-                    }
-                  } else {
-                    if (iframe) {
-                      window.parent.window.postMessage('create:' + JSON.stringify(obj), '*');
-                    } else {
-                      editId = obj.i;
-                      $del.show();
-                      map.notify.success('Node: ' + editId + ' created!');
-                    }
-                  }
-                } else {
-                  map.notify.danger('No places_id was returned. Please try again.');
-                }
-
-                hideLoading();
-                saving = false;
-              });
-            } else {
-              map.notify.danger('The submit failed. Please try again.');
-            }
-
-            saving = false;
-          }, editId);
-        });
-      }
-    }
+    save();
 
     return false;
   });
