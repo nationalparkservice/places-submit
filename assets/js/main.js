@@ -168,7 +168,7 @@ $(document).ready(function () {
         authComplete(e.data);
       }
     }, false);
-    s.src = 'http://www.nps.gov/lib/npmap.js/3.0.7/npmap-bootstrap.min.js';
+    s.src = 'https://www.nps.gov/lib/npmap.js/3.0.15/npmap-bootstrap.min.js';
     document.body.appendChild(s);
     $('#locked .btn-default').click(function () {
       $('#locked').hide();
@@ -441,7 +441,7 @@ $(document).ready(function () {
       if (response.places_lock) {
         NPMap = {
           baseLayers: [
-            'nps-parkTilesImagery'
+            'nps-parkTiles3Imagery'
           ],
           center: center,
           div: 'map',
@@ -470,7 +470,7 @@ $(document).ready(function () {
           },
           zoom: zoom
         };
-        s.src = 'http://www.nps.gov/lib/npmap.js/3.0.7/npmap-bootstrap.min.js';
+        s.src = 'https://www.nps.gov/lib/npmap.js/3.0.15/npmap-bootstrap.min.js';
         document.body.appendChild(s);
       } else {
         init();
