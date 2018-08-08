@@ -94,7 +94,7 @@ module.exports = function (o) {
                 oauth_token: resp.oauth_token,
                 oauth_message_host: location.protocol + '//' + location.host,
                 //oauth_callback: location.href.replace('index.html', '').replace(/#.*/, '').replace(location.search, '') + o.landing
-                oauth_callback: 'http://insidemaps.nps.gov/places/submit/land2.html'
+                oauth_callback: window.location.protocol + '//insidemaps.nps.gov/places/submit/land2.html'
             });
 
             if (o.singlepage) {
